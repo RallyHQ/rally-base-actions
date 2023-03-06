@@ -4,11 +4,9 @@ inputs:
   buildEnv:
     description: 'Build environment'
     required: true
-    type: string
   datadogApiKey:
     description: 'Datadog ApiKey'
     required: false
-    type: string
     default: fake
 
 runs:
@@ -27,11 +25,13 @@ runs:
 
     - name: Pull base image
       id: pull_base_image
+      shell: bash
       run: docker pull ghcr.io/rallyuxr/rally-base-${{ inputs.buildEnv }}
 
     - name: Store yarn.lock hash
       id: store_yarn_lock_hash
       if: steps.pull_base_image.outcome == 'success'
+      shell: bash
       run: |
         PREVIOUS_YARN_LOCK_HASH="$(docker inspect --format='{{index .Config.Labels "com.rallyuxr.yarn-lock-hash"}}' rally-base-${{ inputs.buildEnv }})"
         CURRENT_YARN_LOCK_HASH="$(cat yarn.lock | sha256sum | cut -d " " -f 1)"
@@ -39,11 +39,13 @@ runs:
     - name: Compare yarn.lock hash with label stored yarn.lock hash
       id: yarn_lock_hash_check
       if: steps.store_yarn_lock_hash.outcome == 'success'
+      shell: bash
       run: if [[ "$PREVIOUS_YARN_LOCK_HASH" == "$CURRENT_YARN_LOCK_HASH" ]]; then echo "SHOULD_REBUILD_BASE_IMAGE=false" >> $GITHUB_OUTPUT; else echo "SHOULD_REBUILD_BASE_IMAGE=true" >> $GITHUB_OUTPUT; fi
 
     - name: Build & push new base image
       id: build_new_base_image
       if: steps.yarn_lock_hash_check.outputs.SHOULD_REBUILD_BASE_IMAGE == 'true'
+      shell: bash
       run: |
         docker build -f Dockerfile.base . -t rally-base-${{ inputs.buildEnv }} --label com.rallyuxr.yarn-lock-hash=$(cat yarn.lock | sha256sum | cut -d " " -f 1)
         docker tag rally-base-${{ inputs.buildEnv }} ghcr.io/rallyuxr.com/rally-base-${{ inputs.buildEnv }}:latest
