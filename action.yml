@@ -24,12 +24,6 @@ runs:
         fetch-depth: 0
         ref: ${{ github.head_ref }}
 
-    - name: Setup yarn cache
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'yarn'
-
     - name: Compute yarn lock hash
       shell: bash
       run: echo CURRENT_YARN_LOCK_HASH="$(cat yarn.lock package.json | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
@@ -65,6 +59,13 @@ runs:
       if: steps.get_previous_yarn_lock_hash.outcome == 'success'
       shell: bash
       run: if [[ "${{ env.PREVIOUS_YARN_LOCK_HASH }}" == "${{ env.CURRENT_YARN_LOCK_HASH }}" ]]; then echo "SHOULD_REBUILD_BASE_IMAGE=false" >> $GITHUB_OUTPUT; else echo "SHOULD_REBUILD_BASE_IMAGE=true" >> $GITHUB_OUTPUT; fi
+
+    - name: Setup yarn cache
+      uses: actions/setup-node@v3
+      if: steps.pull_base_image.outputs.STATUS == 'failed' || steps.yarn_lock_hash_check.outputs.SHOULD_REBUILD_BASE_IMAGE == 'true'
+      with:
+        node-version: '18'
+        cache: 'yarn'
 
     - name: Build & push new base image
       id: build_new_base_image
