@@ -68,7 +68,7 @@ runs:
       with:
         context: .
         file: ${{inputs.dockerfilePath}}
-        tags: ${{inputs.namespace}}/${{inputs.imageName}}:latest
+        tags: ghcr.io/${{inputs.namespace}}/${{inputs.imageName}}:latest
         push: true
         build-args: |
           DD_API_KEY: "${{inputs.datadogApiKey}}"
