@@ -73,7 +73,7 @@ runs:
       with:
         context: .
         file: ${{inputs.dockerfilePath}}
-        tags: ${{ env.IMAGE_TAG }}:latest
+        tags: ${{ env.IMAGE_TAG }}
         push: true
         build-args: |
           DD_API_KEY="${{inputs.datadogApiKey}}"
