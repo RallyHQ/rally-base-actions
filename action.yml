@@ -63,7 +63,7 @@ runs:
       if: steps.pull_base_image.outputs.STATUS == 'failed' || steps.yarn_lock_hash_check.outputs.SHOULD_REBUILD_BASE_IMAGE == 'true'
       shell: bash
       run: |
-        docker build -f ${{ inputs.dockerfilePath }} . -t ${{ inputs.imageName }} --label com.rallyuxr.yarn-lock-hash=$(cat yarn.lock | sha256sum | cut -d " " -f 1)
+        docker build -f ${{ inputs.dockerfilePath }} . -t ${{ inputs.imageName }} --label com.rallyuxr.yarn-lock-hash=$(cat yarn.lock | sha256sum | cut -d " " -f 1) --build-arg DD_API_KEY="${{inputs.datadogApiKey}}"
         docker tag ${{ inputs.imageName }} ghcr.io/${{ inputs.namespace }}/${{ inputs.imageName }}:latest
         docker push ghcr.io/${{ inputs.namespace }}/${{ inputs.imageName }}:latest
 
