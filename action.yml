@@ -40,11 +40,13 @@ runs:
     - name: Pull base image
       id: pull_base_image
       shell: bash
-      run: docker pull ghcr.io/${{ inputs.namespace }}/${{ inputs.imageName }}
+      run: |
+        docker pull ghcr.io/${{ inputs.namespace }}/${{ inputs.imageName }} || echo "STATUS=failed" >> $GITHUB_OUTPUT
+      continue-on-error: true
 
     - name: Store yarn.lock hash
       id: store_yarn_lock_hash
-      if: steps.pull_base_image.outcome == 'success'
+      if: steps.pull_base_image.outputs.STATUS != 'failed'
       shell: bash
       run: |
         PREVIOUS_YARN_LOCK_HASH="$(docker inspect --format='{{index .Config.Labels "com.rallyuxr.yarn-lock-hash"}}' ${{ inputs.imageName }})"
@@ -58,7 +60,7 @@ runs:
 
     - name: Build & push new base image
       id: build_new_base_image
-      if: steps.yarn_lock_hash_check.outputs.SHOULD_REBUILD_BASE_IMAGE == 'true'
+      if: steps.pull_base_image.outputs.STATUS == 'failed' || steps.yarn_lock_hash_check.outputs.SHOULD_REBUILD_BASE_IMAGE == 'true'
       shell: bash
       run: |
         docker build -f ${{ inputs.dockerfilePath }} . -t ${{ inputs.imageName }} --label com.rallyuxr.yarn-lock-hash=$(cat yarn.lock | sha256sum | cut -d " " -f 1)
