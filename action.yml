@@ -36,8 +36,7 @@ runs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ github.token }}
-
-
+      
     - name: Pull base image
       id: pull_base_image
       shell: bash
