@@ -32,7 +32,7 @@ runs:
 
     - name: Compute yarn lock hash
       shell: bash
-      run: echo CURRENT_YARN_LOCK_HASH="$(cat yarn.lock | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
+      run: echo CURRENT_YARN_LOCK_HASH="$(cat yarn.lock package.json | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
 
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v2.1.0
