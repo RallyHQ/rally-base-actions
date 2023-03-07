@@ -1,17 +1,29 @@
 name: 'Rally base action'
-description: 'Builds the base components need to build the Rally app'
+description: 'Action to build a base image with install dependicies if the yarn lock file has changed'
 inputs: 
-  buildEnv:
-    description: 'Build environment'
+  imageName:
+    description: 'The name of the image to build'
     required: true
+  namespace:
+    description: 'the namespace field in ghcr.io/NAMESPACE/NEW_IMAGE_NAME:TAG'
+    required: false
+  dockerfilePath:
+    description: 'The path of the dockerfile to build'
+    required: false
+    default: Dockerfile.base
   datadogApiKey:
     description: 'Datadog ApiKey'
     required: false
-    default: fake
+    default: none
 
 runs:
   using: "composite"
   steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        ref: ${{ github.head_ref }}
+
     - name: Setup yarn cache
       uses: actions/setup-node@v3
       with:
@@ -21,14 +33,14 @@ runs:
     - name: Pull base image
       id: pull_base_image
       shell: bash
-      run: docker pull ghcr.io/rallyuxr/rally-base-${{ inputs.buildEnv }}
+      run: docker pull ghcr.io/${{ inputs.namespace }}/${{ inputs.imageName }}
 
     - name: Store yarn.lock hash
       id: store_yarn_lock_hash
       if: steps.pull_base_image.outcome == 'success'
       shell: bash
       run: |
-        PREVIOUS_YARN_LOCK_HASH="$(docker inspect --format='{{index .Config.Labels "com.rallyuxr.yarn-lock-hash"}}' rally-base-${{ inputs.buildEnv }})"
+        PREVIOUS_YARN_LOCK_HASH="$(docker inspect --format='{{index .Config.Labels "com.rallyuxr.yarn-lock-hash"}}' ${{ inputs.imageName }})"
         CURRENT_YARN_LOCK_HASH="$(cat yarn.lock | sha256sum | cut -d " " -f 1)"
 
     - name: Compare yarn.lock hash with label stored yarn.lock hash
@@ -42,6 +54,6 @@ runs:
       if: steps.yarn_lock_hash_check.outputs.SHOULD_REBUILD_BASE_IMAGE == 'true'
       shell: bash
       run: |
-        docker build -f Dockerfile.base . -t rally-base-${{ inputs.buildEnv }} --label com.rallyuxr.yarn-lock-hash=$(cat yarn.lock | sha256sum | cut -d " " -f 1)
-        docker tag rally-base-${{ inputs.buildEnv }} ghcr.io/rallyuxr.com/rally-base-${{ inputs.buildEnv }}:latest
-        docker push ghcr.io/rallyuxr.com/rally-base-${{ inputs.buildEnv }}:latest
+        docker build -f ${{ inputs.dockerfilePath }} . -t ${{ inputs.imageName }} --label com.rallyuxr.yarn-lock-hash=$(cat yarn.lock | sha256sum | cut -d " " -f 1)
+        docker tag ${{ inputs.imageName }} ghcr.io/${{ inputs.namespace }}/${{ inputs.imageName }}:latest
+        docker push ghcr.io/${{ inputs.namespace }}/${{ inputs.imageName }}:latest
