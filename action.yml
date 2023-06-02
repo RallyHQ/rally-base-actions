@@ -71,3 +71,14 @@ runs:
         push: true
         labels: |
           yarn-lock-hash="${{ env.CURRENT_YARN_LOCK_HASH }}"
+
+    - name: Post build yarn cache copy
+      id: post_build_yarn_cache
+      if: steps.build_new_base_image.outcome == 'success'
+      shell: bash
+      continue-on-error: true
+      run: |
+        mkdir -p ./.yarn/cache
+        docker create --name temp-${{ env.IMAGE_TAG }} ${{ env.IMAGE_TAG }}
+        docker cp temp-${{ env.IMAGE_TAG }}:/app/.yarn/cache ./.yarn/cache
+        docker rm temp-${{ env.IMAGE_TAG }}
